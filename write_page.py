@@ -2,11 +2,13 @@ import argparse
 import dominate
 from dominate import tags
 import logging
-import get_weather
-import get_quote
 import datetime
 import time
 import locale
+
+import get_weather
+import get_quote
+from ephemeris import Ephemeris
 from get_events import Event
 
 
@@ -19,6 +21,13 @@ def write_date(doc):
     now = datetime.datetime.now()
     locale.setlocale(locale.LC_ALL, 'fr-FR')
     doc.add(tags.h2(str(time.strftime('%A %d %B %Y', now.timetuple())).capitalize()))
+
+
+def write_ephemeris(doc):
+    ephemeris = Ephemeris('data\\ephemeris-fr.json')
+    t = ephemeris.get_today_ephemeris()
+    s = t[1] + ' ' + t[0] if t[1] else t[0]
+    doc.add(tags.h3(s))
 
 
 def write_qotd(doc):
@@ -134,6 +143,7 @@ def write_events(doc, events):
 def write_body(doc, report):
     doc.add(tags.h1('The Daily Commute'))
     write_date(doc)
+    write_ephemeris(doc)
     write_qotd(doc)
     write_weather(doc, report)
 

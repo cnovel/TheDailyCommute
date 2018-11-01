@@ -2,6 +2,7 @@ import caldav
 from requests.auth import HTTPBasicAuth
 import datetime
 import dateutil
+import locale
 import logging
 import argparse
 
@@ -134,6 +135,35 @@ class Event:
         min_end = day_end if day_end < cur_end else cur_end
         return max_start < min_end
 
+    def get_display_strings(self):
+        if self.is_all_day_event():
+            return self.summary(), self.location(), ''
+
+        now = datetime.datetime.now()
+        day_start = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=0, minute=0, second=1)
+        day_end = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=23, minute=59, second=59)
+        from_zone = dateutil.tz.tzutc()
+        to_zone = dateutil.tz.tzlocal()
+        day_start = day_start.replace(tzinfo=to_zone)
+        day_end = day_end.replace(tzinfo=to_zone)
+        utc_start = self._utc_start.replace(tzinfo=from_zone)
+        utc_end = self._utc_end.replace(tzinfo=from_zone)
+        cur_start = utc_start.astimezone(to_zone)
+        cur_end = utc_end.astimezone(to_zone)
+
+        locale.setlocale(locale.LC_ALL, 'fr-FR')
+        if cur_start < day_start:
+            start_info = str(datetime.datetime.strftime(cur_start, '%A %d %B @ %H:%M'))
+        else:
+            start_info = str(datetime.datetime.strftime(cur_start, '%H:%M'))
+
+        if cur_end > day_end:
+            end_info = str(datetime.datetime.strftime(cur_end, '%A %d %B @ %H:%M'))
+        else:
+            end_info = str(datetime.datetime.strftime(cur_end, '%H:%M'))
+
+        return self.summary(), self.location(), start_info + ' - ' + end_info
+
     def __lt__(self, other):
         start = self.get_start()
         o_start = other.get_start()
@@ -191,7 +221,10 @@ def main():
     args = parser.parse_args()
     my_calendar = FastMailCalendar(username=args.usr, pwd=args.pwd, discovery_url=args.url)
 
-    my_calendar.get_today_events()
+    events = my_calendar.get_today_events()
+    for event in events:
+        s, l, t = event.get_display_strings()
+        print(s, l, t)
 
 
 if __name__ == '__main__':

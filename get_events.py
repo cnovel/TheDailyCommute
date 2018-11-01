@@ -1,5 +1,9 @@
 import caldav
 from requests.auth import HTTPBasicAuth
+import datetime
+import dateutil
+import logging
+import argparse
 
 
 class Event:
@@ -7,40 +11,159 @@ class Event:
     WORK = 1
     SPORT = 2
     BIRTHDAY = 3
+    HOLIDAY = 4
 
-    def __init__(self, t, name, place, t_start, t_end):
-        self._type = t
-        self._name = name
-        self._place = place
-        self._t_start = t_start
-        self._t_end = t_end
+    def __init__(self, data: str, type_):
+        details = data.split('\n')
+        self._summary = None
+        self._location = None
+        self._utc_start = None
+        self._utc_end = None
+        self._local_start = None
+        self._local_end = None
+        self._tz_id = None
+        self._date_start = None
+        self._date_end = None
+        self._all_day = False
+        self._type = type_
 
-    def type(self, t=None):
-        if t:
-            self._type = t
+        for detail in details:
+            if detail.startswith('SUMMARY:'):
+                self._summary = detail[8:]
+            if detail.startswith('LOCATION:'):
+                self._location = detail[9:]
+            if detail.startswith('DTSTART;'):
+                t = detail[8:].split(':')
+                assert len(t) == 2
+                if t[0].startswith('VALUE=DATE'):
+                    self._all_day = True
+                    self._date_start = t[1]
+                else:
+                    self._tz_id = t[0][5:]
+                    self._local_start = t[1]
+            if detail.startswith('DTEND;'):
+                t = detail[6:].split(':')
+                assert len(t) == 2
+                if t[0].startswith('VALUE=DATE'):
+                    self._date_end = t[1]
+                else:
+                    self._local_end = t[1]
+            if detail.startswith('DTSTART:') and not detail.startswith('19700101'):
+                self._utc_start = detail[8:]
+            if detail.startswith('DTEND:'):
+                self._utc_end = detail[6:]
+
+        self._process_times()
+
+    def _process_times(self):
+        if self._local_start is not None:
+            self._local_start = datetime.datetime.strptime(self._local_start, '%Y%m%dT%H%M%S')
+        if self._local_end is not None:
+            self._local_end = datetime.datetime.strptime(self._local_end, '%Y%m%dT%H%M%S')
+        if self._utc_start is not None:
+            format_string = '%Y%m%dT%H%M%S'
+            if self._utc_start.endswith('Z'):
+                format_string += 'Z'
+            self._utc_start = datetime.datetime.strptime(self._utc_start, format_string)
+        if self._utc_end is not None:
+            format_string = '%Y%m%dT%H%M%S'
+            if self._utc_end.endswith('Z'):
+                format_string += 'Z'
+            self._utc_end = datetime.datetime.strptime(self._utc_end, format_string)
+        if self._date_start is not None:
+            self._date_start = datetime.datetime.strptime(self._date_start, '%Y%m%d')
+        if self._date_end is not None:
+            self._date_end = datetime.datetime.strptime(self._date_end, '%Y%m%d')
+
+        if not self.is_all_day_event():
+            self._get_utc_times()
+
+    def _get_utc_times(self):
+        if self._utc_start is not None and self._utc_end is not None:
+            return None
+        from_zone = dateutil.tz.gettz(self._tz_id)
+        to_zone = dateutil.tz.tzutc()
+        start = self._local_start
+        end = self._local_end
+        start = start.replace(tzinfo=from_zone)
+        end = end.replace(tzinfo=from_zone)
+        self._utc_start = start.astimezone(to_zone)
+        self._utc_end = end.astimezone(to_zone)
+
+    def is_all_day_event(self):
+        return self._all_day
+
+    def type(self):
         return self._type
 
-    def name(self, t=None):
-        if t:
-            self._name = t
-        return self._name
+    def summary(self):
+        return self._summary
 
-    def place(self, t=None):
-        if t:
-            self._place = t
-        return self._place
+    def is_happening_today(self):
+        now = datetime.datetime.now()
+        day_start = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=0, minute=0, second=1)
+        day_end = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=23, minute=59, second=59)
 
-    def time(self, t_s=None, t_e=None):
-        if t_s:
-            self._t_start = t_s
-        if t_e:
-            self._t_end = t_e
-        return self._t_start, self._t_end
+        if self.is_all_day_event():
+            max_start = day_start if day_start > self._date_start else self._date_start
+            min_end = day_end if day_end < self._date_end else self._date_end
+            return max_start < min_end
+
+        from_zone = dateutil.tz.tzutc()
+        to_zone = dateutil.tz.tzlocal()
+        day_start = day_start.replace(tzinfo=to_zone)
+        day_end = day_end.replace(tzinfo=to_zone)
+        utc_start = self._utc_start.replace(tzinfo=from_zone)
+        utc_end = self._utc_end.replace(tzinfo=from_zone)
+        cur_start = utc_start.astimezone(to_zone)
+        cur_end = utc_end.astimezone(to_zone)
+
+        max_start = day_start if day_start > cur_start else cur_start
+        min_end = day_end if day_end < cur_end else cur_end
+        return max_start < min_end
+
+
+class FastMailCalendar:
+    def __init__(self, username, pwd, discovery_url):
+        auth = HTTPBasicAuth(username=username, password=pwd)
+        client = caldav.DAVClient(discovery_url, auth=auth)
+        self._principal = client.principal()
+
+    def get_today_events(self):
+        for cal in self._principal.calendars():
+            prop = cal.get_properties([caldav.dav.DisplayName()])
+            name = prop['{DAV:}displayname']
+
+            if name == 'Agenda':
+                type = Event.PERSO
+            elif name == 'Work':
+                type = Event.WORK
+            elif name == 'Jours fériés en France':
+                type = Event.HOLIDAY
+            elif name == 'Sports':
+                type = Event.SPORT
+            else:
+                continue
+
+            logging.info(f'Processing calendar {name}')
+            for event in cal.events():
+                e = Event(event.data, type)
+                if e.is_happening_today():
+                    logging.info(f'{e.summary()} is happening today')
 
 
 def main():
-    # Not working yet
-    pass
+    logging.getLogger().setLevel(logging.INFO)
+    log_format = '[%(levelname)s] %(message)s'
+    logging.basicConfig(format=log_format)
+    parser = argparse.ArgumentParser(description='Get weather information from DarkSky API')
+    parser.add_argument('-u', '--user', dest='usr', required=True, help='User login')
+    parser.add_argument('-p', '--password', dest='pwd', required=True, help='User password')
+    parser.add_argument('--url', dest='url', required=True, help='CalDAV discovery URL')
+    args = parser.parse_args()
+    my_calendar = FastMailCalendar(username=args.usr, pwd=args.pwd, discovery_url=args.url)
+
+    my_calendar.get_today_events()
 
 
 if __name__ == '__main__':

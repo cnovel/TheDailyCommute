@@ -97,7 +97,19 @@ class Event:
         return self._type
 
     def summary(self):
-        return self._summary
+        if self._summary is not None:
+            return self._summary
+        return ''
+
+    def location(self):
+        if self._location is not None:
+            return self._location
+        return ''
+
+    def get_start(self):
+        if self.is_all_day_event():
+            return self._date_start
+        return self._utc_start
 
     def is_happening_today(self):
         now = datetime.datetime.now()
@@ -122,6 +134,19 @@ class Event:
         min_end = day_end if day_end < cur_end else cur_end
         return max_start < min_end
 
+    def __lt__(self, other):
+        start = self.get_start()
+        o_start = other.get_start()
+        start = start.replace(tzinfo=dateutil.tz.tzutc())
+        o_start = o_start.replace(tzinfo=dateutil.tz.tzutc())
+        return start < o_start
+
+    def __repr__(self):
+        return f'Event {self.summary()} @ {self.location()}'
+
+    def __str__(self):
+        return f'Event {self.summary()} @ {self.location()}'
+
 
 class FastMailCalendar:
     def __init__(self, username, pwd, discovery_url):
@@ -130,33 +155,36 @@ class FastMailCalendar:
         self._principal = client.principal()
 
     def get_today_events(self):
+        events = []
         for cal in self._principal.calendars():
             prop = cal.get_properties([caldav.dav.DisplayName()])
             name = prop['{DAV:}displayname']
 
             if name == 'Agenda':
-                type = Event.PERSO
+                t = Event.PERSO
             elif name == 'Work':
-                type = Event.WORK
+                t = Event.WORK
             elif name == 'Jours fériés en France':
-                type = Event.HOLIDAY
+                t = Event.HOLIDAY
             elif name == 'Sports':
-                type = Event.SPORT
+                t = Event.SPORT
             else:
                 continue
 
             logging.info(f'Processing calendar {name}')
             for event in cal.events():
-                e = Event(event.data, type)
+                e = Event(event.data, t)
                 if e.is_happening_today():
                     logging.info(f'{e.summary()} is happening today')
+                    events.append(e)
+        return sorted(events)
 
 
 def main():
     logging.getLogger().setLevel(logging.INFO)
     log_format = '[%(levelname)s] %(message)s'
     logging.basicConfig(format=log_format)
-    parser = argparse.ArgumentParser(description='Get weather information from DarkSky API')
+    parser = argparse.ArgumentParser(description='Get Fastmail events')
     parser.add_argument('-u', '--user', dest='usr', required=True, help='User login')
     parser.add_argument('-p', '--password', dest='pwd', required=True, help='User password')
     parser.add_argument('--url', dest='url', required=True, help='CalDAV discovery URL')

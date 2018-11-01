@@ -6,11 +6,16 @@ from enum import Enum
 
 
 class DarkSkyApi:
-    def __init__(self, key):
+    def __init__(self, key: str):
         self._key = key
 
-    def key(self, k=None):
-        if k:
+    def key(self, k: str = None) -> str:
+        """
+        Getter/setter for DarkSky api key
+        :param k: key string, optional
+        :return: api key
+        """
+        if k is not None:
             self._key = k
         return self._key
 
@@ -19,17 +24,27 @@ class DarkSkyApi:
 
 
 class WeatherLocation:
-    def __init__(self, latitude, longitude):
+    def __init__(self, latitude: float, longitude: float):
         self._lat = latitude
         self._lon = longitude
 
-    def lat(self, lat=None):
-        if lat:
+    def lat(self, lat: float = None) -> float:
+        """
+        Getter/setter for latitude
+        :param lat: latitude, optional
+        :return: latitude
+        """
+        if lat is not None:
             self._lat = lat
         return self._lat
 
-    def lon(self, lon=None):
-        if lon:
+    def lon(self, lon: float = None) -> float:
+        """
+        Getter/setter for longitude
+        :param lon: longitude, optional
+        :return: longitude
+        """
+        if lon is not None:
             self._lon = lon
         return self._lon
 
@@ -51,7 +66,12 @@ class Weather(Enum):
     CLOUDY = 10
 
     @staticmethod
-    def get_from_string(s):
+    def get_from_string(s: str):
+        """
+        Get type of weather from DarkSky icon string
+        :param s: DarkSky icon string
+        :return: type of weather
+        """
         if s == 'clear-day':
             return Weather.DAY_CLEAR
         elif s == 'clear-night':
@@ -74,23 +94,38 @@ class Weather(Enum):
 
 
 class Temperature:
-    def __init__(self, t_cur, t_max, t_min):
+    def __init__(self, t_cur: float, t_max: float, t_min: float):
         self._cur = t_cur
         self._min = t_min
         self._max = t_max
 
-    def cur(self, t=None):
-        if t:
+    def cur(self, t: float = None) -> float:
+        """
+        Getter/setter for current temperature
+        :param t: Current temperature, optional
+        :return: current temperature
+        """
+        if t is not None:
             self._cur = t
         return self._cur
 
-    def min(self, t=None):
-        if t:
+    def min(self, t: float = None) -> float:
+        """
+        Getter/setter for minimum temperature
+        :param t: Minimum temperature, optional
+        :return: minimum temperature
+        """
+        if t is not None:
             self._min = t
         return self._min
 
-    def max(self, t=None):
-        if t:
+    def max(self, t: float = None) -> float:
+        """
+        Getter/setter for maximum temperature
+        :param t: Maximum temperature, optional
+        :return: maximum temperature
+        """
+        if t is not None:
             self._max = t
         return self._max
 

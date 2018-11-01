@@ -1,4 +1,3 @@
-import argparse
 import dominate
 from dominate import tags
 import logging
@@ -30,20 +29,23 @@ def write_ephemeris(doc):
     doc.add(tags.h3(s))
 
 
+def write_quote(quote):
+    tags.p('« ' + quote.text() + ' »', cls='quote')
+    tags.p('— ' + quote.author(), cls='author')
+
+
 def write_qotd(doc):
     with doc:
         with tags.div(cls='qotd'):
             quote = get_quote.get_quote_of_the_day()
-            tags.p('« ' + quote.text() + ' »', cls='quote')
-            tags.p('— ' + quote.author(), cls='author')
+            write_quote(quote)
 
 
 def write_ron_quote(doc):
     with doc:
         with tags.div(cls='ron'):
-            text = get_quote.get_ron_swanson_quote()
-            tags.p('« ' + text + ' »', cls='quote')
-            tags.p('— Ron Swanson', cls='author')
+            quote = get_quote.get_ron_swanson_quote()
+            write_quote(quote)
 
 
 def get_svg_path(weather):

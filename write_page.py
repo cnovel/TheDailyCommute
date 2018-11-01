@@ -120,16 +120,19 @@ def event_type_to_string(event):
         return 'event-sport'
     if event.type() == Event.BIRTHDAY:
         return 'event-bday'
+    if event.type() == Event.HOLIDAY:
+        return 'event-holiday'
     return 'event-unknown'
 
 
-def write_event(event):
+def write_event(event: Event):
     with tags.div(cls=event_type_to_string(event)):
-        tags.p(event.name(), cls='event-name')
-        if event.time()[0] is not None and event.time()[1] is not None:
-            tags.p(event.time()[0] + ' - ' + event.time()[1], cls='time')
-        if event.place():
-            tags.p(event.place(), cls='place')
+        name, location, t = event.get_display_strings()
+        tags.p(name, cls='event-name')
+        if t:
+            tags.p(t, cls='time')
+        if location:
+            tags.p(location, cls='place')
 
 
 def write_events(doc, events):
@@ -140,43 +143,21 @@ def write_events(doc, events):
                 write_event(event)
 
 
-def write_body(doc, report):
+def write_body(doc, report, events):
     doc.add(tags.h1('The Daily Commute'))
     write_date(doc)
     write_ephemeris(doc)
     write_qotd(doc)
     write_weather(doc, report)
-
-    eventA = Event(Event.PERSO, 'Raclette', 'Chez Jean-Yves', '19h30', '21h30')
-    eventB = Event(Event.WORK, 'Meeting', 'Skype', '14h00', '15h00')
-    eventC = Event(Event.BIRTHDAY, 'Jean-Michel BRUIAGE', '28 ans', None, None)
-    eventD = Event(Event.SPORT, 'Grand Prix de France', 'Circuit Paul Ricard', '16h00', '18h00')
-    events = (eventC, eventB, eventD, eventA)
-
     write_events(doc, events)
-
     write_ron_quote(doc)
 
 
-def main():
-    logging.getLogger().setLevel(logging.INFO)
-    log_format = '[%(levelname)s] %(message)s'
-    logging.basicConfig(format=log_format)
-    parser = argparse.ArgumentParser(description='Create a web page with some info')
-    parser.add_argument('-k', '--key', dest='key', required=True, help='DarkSky API key')
-    parser.add_argument('--lat', dest='lat', required=True, help='Latitude')
-    parser.add_argument('--lon', dest='lon', required=True, help='Longitude')
-    args = parser.parse_args()
-    api = get_weather.DarkSkyApi(args.key)
-    location = get_weather.WeatherLocation(args.lat, args.lon)
-    report = get_weather.WeatherReport(api, location)
-    if report.get_report():
-        doc = dominate.document(title='The Daily Commute')
-        write_head(doc)
-        write_body(doc, report)
-        with open('page\\index.html', 'w') as f:
-            f.write(doc.render())
-
-
-if __name__ == '__main__':
-    main()
+def write_html(report, events, out):
+    logging.info('Creating HTML document')
+    doc = dominate.document(title='The Daily Commute')
+    write_head(doc)
+    write_body(doc, report, events)
+    logging.info('Writing HTML document')
+    with open(out, 'w') as f:
+        f.write(doc.render())

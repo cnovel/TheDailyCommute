@@ -127,6 +127,7 @@ class WeatherReport:
 
     def _read_json(self, data):
         # Get the average of the day
+        logging.info('Processing hourly data')
         if 'hourly' in data:
             # If available, get the summary of the day
             if 'summary' in data['hourly']:
@@ -159,6 +160,7 @@ class WeatherReport:
                         self._weather = k
 
         # Get current info for completion
+        logging.info('Processing currently data')
         if 'currently' in data:
             if 'temperature' in data['currently']:
                 self._temp.cur(data['currently']['temperature'])
@@ -166,6 +168,7 @@ class WeatherReport:
                 self._weather = Weather.get_from_string(data['currently']['icon'])
 
         # Round temperature
+        logging.info('Processing temperature')
         self.temp().cur(int(self.temp().cur()))
         self.temp().min(int(self.temp().min()))
         self.temp().max(int(self.temp().max()))
@@ -174,16 +177,14 @@ class WeatherReport:
         url = 'https://api.darksky.net/forecast/' + self._api.key() + '/' + self._location.lat() + ',' + \
               self._location.lon() + '?lang=' + self.lang() + '&units=si&exclude=daily'
         logging.info(f'Contacting DarkSky with following url: {url}')
-        online = True
-        if online:
-            with urllib.request.urlopen(url) as request:
-                if request.getcode() != 200:
-                    logging.error(f'Failed to reach DarkSky, error code = {request.getcode()}')
-                    return False
-                data = json.loads(request.read())
-        else:
-            with open('data\\test.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
+
+        with urllib.request.urlopen(url) as request:
+            if request.getcode() != 200:
+                logging.error(f'Failed to reach DarkSky, error code = {request.getcode()}')
+                return False
+            data = json.loads(request.read())
+            logging.info('Data retrieved from DarkSky')
+
         self._read_json(data)
         return True
 

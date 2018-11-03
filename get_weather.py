@@ -211,7 +211,7 @@ class WeatherReport:
     def get_report(self):
         url = 'https://api.darksky.net/forecast/' + self._api.key() + '/' + self._location.lat() + ',' + \
               self._location.lon() + '?lang=' + self.lang() + '&units=si&exclude=daily'
-        logging.info(f'Contacting DarkSky with following url: {url}')
+        logging.info(f'Contacting DarkSky...')
 
         with urllib.request.urlopen(url) as request:
             if request.getcode() != 200:

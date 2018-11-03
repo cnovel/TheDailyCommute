@@ -151,7 +151,8 @@ def write_body(doc, report, events):
     write_ephemeris(doc)
     write_qotd(doc)
     write_weather(doc, report)
-    write_events(doc, events)
+    if len(events) > 0:
+        write_events(doc, events)
     write_ron_quote(doc)
 
 

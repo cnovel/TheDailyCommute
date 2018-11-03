@@ -2,9 +2,15 @@
 
 *The Daily Commute* is a small python project. It aims at generating every morning a small web page with the essential info for your day.
 
+# Dependencies
+* caldav
+* wikiquote
+* dominate
+* ftplib
+
 # TODO
 * ~~Access to Fastmail calendar through `caldav` python module~~
 * Somehow fetch a strip which can fit vertically
-* Send HTML via FTP
+* ~~Send HTML via FTP~~
 * Write documentation
 * Add tests

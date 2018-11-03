@@ -11,44 +11,73 @@ from ephemeris import Ephemeris
 from get_events import Event
 
 
-def write_head(doc):
+def write_head(doc: dominate.document):
+    """
+    Write head for HTML document
+    :param doc: Dominate document
+    """
     with doc.head:
         tags.link(rel='stylesheet', href='style.css')
 
 
-def write_date(doc):
+def write_date(doc: dominate.document):
+    """
+    Write date in HTML document
+    :param doc: Dominate document
+    """
     now = datetime.datetime.now()
     locale.setlocale(locale.LC_ALL, 'fr-FR')
     doc.add(tags.h2(str(time.strftime('%A %d %B %Y', now.timetuple())).capitalize()))
 
 
-def write_ephemeris(doc):
+def write_ephemeris(doc: dominate.document):
+    """
+    Write ephemeris in HTML document
+    :param doc: Dominate document
+    """
     ephemeris = Ephemeris('data\\ephemeris-fr.json')
     t = ephemeris.get_today_ephemeris()
     s = t[1] + ' ' + t[0] if t[1] else t[0]
     doc.add(tags.h3(s))
 
 
-def write_quote(quote):
+def write_quote(quote: get_quote.Quote):
+    """
+    Write quote, requires an open dominate document
+    :param quote: Quote to be written
+    """
     tags.p('« ' + quote.text() + ' »', cls='quote')
     tags.p('— ' + quote.author(), cls='author')
 
 
-def write_qotd(doc):
+def write_qotd(doc: dominate.document):
+    """
+    Write quote of the day in HTML document
+    :param doc:  Dominate document
+    """
     with doc:
         with tags.div(cls='qotd'):
             quote = get_quote.get_quote_of_the_day()
             write_quote(quote)
 
 
-def write_ron_quote(doc):
+def write_ron_quote(doc: dominate.document):
+    """
+    Write a Ron Swanson quote in HTML document
+    :param doc:  Dominate document
+    """
     with doc:
         with tags.div(cls='ron'):
             quote = get_quote.get_ron_swanson_quote()
             write_quote(quote)
 
 
-def get_svg_path(weather):
+def get_svg_path(weather: get_weather.Weather) -> str:
+    """
+    Get SVG path corresponding to weather type
+    :param weather: Weather type
+    :return: path to SVG resource
+    """
     if weather == get_weather.Weather.DAY_CLEAR:
         return 'Icons/Sun.svg'
     if weather == get_weather.Weather.DAY_PARTLY_CLOUDY:
@@ -72,7 +101,12 @@ def get_svg_path(weather):
     return 'Icons/Compass.svg'
 
 
-def get_temp_svg(temp):
+def get_temp_svg(temp: get_weather.Temperature) -> str:
+    """
+    Get SVG path corresponding to the temperature
+    :param temp: Temperature
+    :return: path to SVG resource
+    """
     if temp.max() < 5:
         return 'Icons/Thermometer-Zero.svg'
     if temp.max() < 10:
@@ -84,11 +118,21 @@ def get_temp_svg(temp):
     return 'Icons/Thermometer-100.svg'
 
 
-def get_temp_str(temp):
+def get_temp_str(temp: get_weather.Temperature) -> str:
+    """
+    Return string in french with temperature info
+    :param temp: Temperature
+    :return: string
+    """
     return f'Il fait {temp.cur()}°C, oscillant entre {temp.min()}°C et {temp.max()}°C'
 
 
-def get_rain_str(risk_of_rain):
+def get_rain_str(risk_of_rain: float) -> str:
+    """
+    Return string in french with risk of rain info
+    :param risk_of_rain: Risk of rain between 0 and 1
+    :return: string
+    """
     if risk_of_rain < 0.33:
         return f'Risque de pluie : {int(100*risk_of_rain)}%.'
     if risk_of_rain < 0.66:
@@ -96,13 +140,23 @@ def get_rain_str(risk_of_rain):
     return f'Risque de pluie : {int(100*risk_of_rain)}%, prenez un parapluie et un k-way !'
 
 
-def get_rain_svg(risk_of_rain):
+def get_rain_svg(risk_of_rain: float) -> str:
+    """
+    Get SVG path to risk of rain icon
+    :param risk_of_rain: Risk of rain between 0 and 1
+    :return: path to SVG resource
+    """
     if risk_of_rain < 0.33:
         return 'Icons/Shades.svg'
     return 'Icons/Umbrella.svg'
 
 
-def write_weather(doc, report):
+def write_weather(doc: dominate.document, report: get_weather.WeatherReport):
+    """
+    Write weather report in HTML document
+    :param doc: Dominate document
+    :param report: Weather report
+    """
     with doc:
         with tags.div(cls='weather'):
             tags.img(src=get_svg_path(report.weather()), alt='Weather icon', cls='icon')
@@ -113,7 +167,12 @@ def write_weather(doc, report):
             tags.p(get_rain_str(report.risk_of_rain()), cls='summary')
 
 
-def event_type_to_string(event):
+def event_type_to_string(event: Event) -> str:
+    """
+    Convert event type to string
+    :param event: Event
+    :return: description string
+    """
     if event.type() == Event.WORK:
         return 'event-work'
     if event.type() == Event.PERSO:
@@ -128,6 +187,10 @@ def event_type_to_string(event):
 
 
 def write_event(event: Event):
+    """
+    Write event to HTML document
+    :param event: Event to be written
+    """
     with tags.div(cls=event_type_to_string(event)):
         name, location, t = event.get_display_strings()
         tags.p(name, cls='event-name')
@@ -137,7 +200,12 @@ def write_event(event: Event):
             tags.p(location, cls='place')
 
 
-def write_events(doc, events):
+def write_events(doc: dominate.document, events):
+    """
+    Write events to HTML document
+    :param doc: Dominate document
+    :param events: List of events
+    """
     with doc:
         with tags.div(cls='agenda'):
             tags.img(src='Icons/Calendar.svg', alt='Calendar icon', cls='icon')
@@ -145,7 +213,13 @@ def write_events(doc, events):
                 write_event(event)
 
 
-def write_body(doc, report, events):
+def write_body(doc: dominate.document, report: get_weather.WeatherReport, events):
+    """
+    Write the body of the Daily Commute
+    :param doc: Dominate document
+    :param report: Weather report
+    :param events: List of events
+    """
     doc.add(tags.h1('The Daily Commute'))
     write_date(doc)
     write_ephemeris(doc)
@@ -156,7 +230,13 @@ def write_body(doc, report, events):
     write_ron_quote(doc)
 
 
-def write_html(report, events, out):
+def write_html(report: get_weather.WeatherReport, events, out: str):
+    """
+    Write HTML file containing the Daily Commute
+    :param report: Weather report
+    :param events: List of events
+    :param out: path to html file
+    """
     logging.info('Creating HTML document')
     doc = dominate.document(title='The Daily Commute')
     write_head(doc)

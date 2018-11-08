@@ -1,8 +1,18 @@
+"""Upload a page via FTP"""
 import ftplib
 import logging
 
 
 def upload_to(server, usr, pwd, directory, filename):
+    """
+    Upload a file via FTP
+    :param server: server url
+    :param usr: username
+    :param pwd: password
+    :param directory: where to upload the file
+    :param filename: file to upload
+    :return: bool
+    """
     try:
         logging.info(f'Connecting to {server} with user {usr}')
         session = ftplib.FTP(server, usr, pwd)
@@ -14,6 +24,6 @@ def upload_to(server, usr, pwd, directory, filename):
         session.quit()
         logging.info('The Daily Commute was posted')
         return True
-    except Exception as e:
-        logging.exception(e)
+    except Exception as exc:
+        logging.exception(exc)
         return False

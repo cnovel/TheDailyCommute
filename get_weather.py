@@ -1,3 +1,5 @@
+"""Handle DarkSky API and weather related classes"""
+
 import logging
 import argparse
 import urllib.request
@@ -6,6 +8,7 @@ from enum import Enum
 
 
 class DarkSkyApi:
+    """Store the DarkSky API key"""
     def __init__(self, key: str):
         self._key = key
 
@@ -24,6 +27,7 @@ class DarkSkyApi:
 
 
 class WeatherLocation:
+    """Store a weather location"""
     def __init__(self, latitude: float, longitude: float):
         self._lat = latitude
         self._lon = longitude
@@ -53,6 +57,7 @@ class WeatherLocation:
 
 
 class Weather(Enum):
+    """Store weather type"""
     UNKNOWN = 0
     DAY_CLEAR = 1
     DAY_PARTLY_CLOUDY = 2
@@ -65,68 +70,58 @@ class Weather(Enum):
     FOG = 9
     CLOUDY = 10
 
+    _translation = {'clear-day': DAY_CLEAR, 'clear-night': NIGHT_CLEAR, 'rain': RAIN,
+                    'sleet': SLEET, 'wind': WIND, 'fog': FOG, 'cloudy': CLOUDY,
+                    'partly-cloudy-day': DAY_PARTLY_CLOUDY,
+                    'partly-cloudy-night': NIGHT_PARTLY_CLOUDY}
+
     @staticmethod
-    def get_from_string(s: str):
+    def get_from_string(weather_str: str):
         """
         Get type of weather from DarkSky icon string
-        :param s: DarkSky icon string
+        :param weather_str: DarkSky icon string
         :return: type of weather
         """
-        if s == 'clear-day':
-            return Weather.DAY_CLEAR
-        elif s == 'clear-night':
-            return Weather.NIGHT_CLEAR
-        elif s == 'rain':
-            return Weather.RAIN
-        elif s == 'sleet':
-            return Weather.SLEET
-        elif s == 'wind':
-            return Weather.WIND
-        elif s == 'fog':
-            return Weather.FOG
-        elif s == 'cloudy':
-            return Weather.CLOUDY
-        elif s == 'partly-cloudy-day':
-            return Weather.DAY_PARTLY_CLOUDY
-        elif s == 'partly-cloudy-night':
-            return Weather.NIGHT_PARTLY_CLOUDY
+        if weather_str in Weather._translation:
+            return Weather._translation[weather_str]
         return Weather.UNKNOWN
 
 
 class Temperature:
+    """Store temperature info for the day"""
     def __init__(self, t_cur: float, t_max: float, t_min: float):
         self._cur = t_cur
         self._min = t_min
         self._max = t_max
 
-    def cur(self, t: float = None) -> float:
+    def cur(self, temp: float = None) -> float:
         """
         Getter/setter for current temperature
-        :param t: Current temperature, optional
+        :param temp: Current temperature, optional
         :return: current temperature
         """
-        if t is not None:
-            self._cur = t
+        if temp is not None:
+            self._cur = temp
         return self._cur
 
-    def min(self, t: float = None) -> float:
+    def min(self, temp: float = None) -> float:
         """
         Getter/setter for minimum temperature
-        :param t: Minimum temperature, optional
+        :param temp: Minimum temperature, optional
         :return: minimum temperature
         """
-        if t is not None:
-            self._min = t
+        if temp is not None:
+            self._min = temp
         return self._min
 
-    def max(self, t: float = None) -> float:
+    def max(self, temp: float = None) -> float:
         """
         Getter/setter for maximum temperature
-        :param t: Maximum temperature, optional
+        :param temp: Maximum temperature, optional
         :return: maximum temperature
         """
-        if t is not None:
-            self._max = t
+        if temp is not None:
+            self._max = temp
         return self._max
 
     def __str__(self):
@@ -134,6 +129,7 @@ class Temperature:
 
 
 class WeatherReport:
+    """Fetch and store a weather report for the day"""
     def __init__(self, api, location):
         self._api = api
         self._location = location
@@ -189,10 +185,10 @@ class WeatherReport:
 
                 # Find the average weather of the day
                 best_weather_count = 0
-                for k, v in mean_weather.items():
-                    if v > best_weather_count:
-                        best_weather_count = v
-                        self._weather = k
+                for key, value in mean_weather.items():
+                    if value > best_weather_count:
+                        best_weather_count = value
+                        self._weather = key
 
         # Get current info for completion
         logging.info('Processing currently data')
@@ -209,8 +205,9 @@ class WeatherReport:
         self.temp().max(int(self.temp().max()))
 
     def get_report(self):
-        url = 'https://api.darksky.net/forecast/' + self._api.key() + '/' + self._location.lat() + ',' + \
-              self._location.lon() + '?lang=' + self.lang() + '&units=si&exclude=daily'
+        url = 'https://api.darksky.net/forecast/' + self._api.key() + '/' + \
+              self._location.lat() + ',' + self._location.lon() + \
+              '?lang=' + self.lang() + '&units=si&exclude=daily'
         logging.info(f'Contacting DarkSky...')
 
         with urllib.request.urlopen(url) as request:
@@ -224,7 +221,8 @@ class WeatherReport:
         return True
 
     def __str__(self):
-        return f'{self.weather()}, {self.summary()}, {self.temp()}, rain: {int(self.risk_of_rain()*100)}%'
+        return f'{self.weather()}, {self.summary()}, {self.temp()},' \
+               f' rain: {int(self.risk_of_rain()*100)}%'
 
 
 def main():

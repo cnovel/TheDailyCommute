@@ -1,10 +1,12 @@
-import wikiquote
+"""Retrieve quotes from different services"""
 import urllib.request
 import logging
 import json
+import wikiquote
 
 
 class Quote:
+    """Quote container"""
     def __init__(self, text: str, author: str):
         """
         Constructor for a quote
@@ -48,10 +50,10 @@ def get_quote_of_the_day(lang: str = 'fr') -> Quote:
     :return: Quote, can be empty
     """
     try:
-        t = wikiquote.quote_of_the_day(lang)
-        return Quote(t[0], t[1])
-    except wikiquote.qotd.utils.UnsupportedLanguageException as e:
-        logging.exception(e)
+        qotd = wikiquote.quote_of_the_day(lang)
+        return Quote(qotd[0], qotd[1])
+    except wikiquote.qotd.utils.UnsupportedLanguageException as lang_except:
+        logging.exception(lang_except)
         return Quote('', '')
 
 
@@ -70,20 +72,23 @@ def get_ron_swanson_quote() -> Quote:
 
 
 def main():
-    q = get_quote_of_the_day()
-    if q:
-        print(q)
+    """
+    Example function
+    """
+    qotd = get_quote_of_the_day()
+    if qotd:
+        print(qotd)
     else:
         print('Quote of the day unreachable')
-    q = get_ron_swanson_quote()
-    if q:
-        print(q)
+    quote = get_ron_swanson_quote()
+    if quote:
+        print(quote)
     else:
         print('Ron Swanson is unavailable')
 
-    q = Quote('', '')
-    if q:
-        print(q)
+    quote = Quote('', '')
+    if quote:
+        print(quote)
     else:
         print('Quote is empty')
 

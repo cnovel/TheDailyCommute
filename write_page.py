@@ -1,9 +1,12 @@
-import dominate
-from dominate import tags
+"""Write the HTML page for the Daily Commute"""
+
 import logging
 import datetime
 import time
 import locale
+
+import dominate
+from dominate import tags
 
 import get_weather
 import get_quote
@@ -36,9 +39,9 @@ def write_ephemeris(doc: dominate.document):
     :param doc: Dominate document
     """
     ephemeris = Ephemeris('data\\ephemeris-fr.json')
-    t = ephemeris.get_today_ephemeris()
-    s = t[1] + ' ' + t[0] if t[1] else t[0]
-    doc.add(tags.h3(s))
+    today_eph = ephemeris.get_today_ephemeris()
+    string_eph = today_eph[1] + ' ' + today_eph[0] if today_eph[1] else today_eph[0]
+    doc.add(tags.h3(string_eph))
 
 
 def write_quote(quote: get_quote.Quote):
@@ -192,10 +195,10 @@ def write_event(event: Event):
     :param event: Event to be written
     """
     with tags.div(cls=event_type_to_string(event)):
-        name, location, t = event.get_display_strings()
+        name, location, hours = event.get_display_strings()
         tags.p(name, cls='event-name')
-        if t:
-            tags.p(t, cls='time')
+        if hours:
+            tags.p(hours, cls='time')
         if location:
             tags.p(location, cls='place')
 
@@ -225,7 +228,7 @@ def write_body(doc: dominate.document, report: get_weather.WeatherReport, events
     write_ephemeris(doc)
     write_qotd(doc)
     write_weather(doc, report)
-    if len(events) > 0:
+    if events:
         write_events(doc, events)
     write_ron_quote(doc)
 
@@ -242,5 +245,5 @@ def write_html(report: get_weather.WeatherReport, events, out: str):
     write_head(doc)
     write_body(doc, report, events)
     logging.info('Writing HTML document')
-    with open(out, 'w') as f:
-        f.write(doc.render())
+    with open(out, 'w') as file:
+        file.write(doc.render())

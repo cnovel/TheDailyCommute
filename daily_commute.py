@@ -7,7 +7,7 @@ import os
 
 from get_events import FastMailCalendar
 from get_weather import DarkSkyApi, WeatherReport, WeatherLocation
-from upload_page import upload_to
+from upload_page import FtpConfig, upload_to
 import write_page
 
 
@@ -38,43 +38,6 @@ class FastmailConfig:
         :return: url
         """
         return self._url
-
-
-class FtpConfig:
-    """Store the FTP configuration for uploading the Daily Commute"""
-    def __init__(self, url: str, usr: str, pwd: str, directory: str):
-        self._url = url
-        self._usr = usr
-        self._pwd = pwd
-        self._dir = directory
-
-    def url(self) -> str:
-        """
-        Get FTP url
-        :return: url
-        """
-        return self._url
-
-    def usr(self) -> str:
-        """
-        Get FTP user name
-        :return: user name
-        """
-        return self._usr
-
-    def pwd(self) -> str:
-        """
-        Get FTP password
-        :return: password
-        """
-        return self._pwd
-
-    def dir(self) -> str:
-        """
-        Get FTP directory where the Daily Commute is saved
-        :return: directory
-        """
-        return self._dir
 
 
 class ConfigDailyCommute:
@@ -143,33 +106,12 @@ class ConfigDailyCommute:
         """
         return self._fastmail_config.url()
 
-    def ftp_url(self) -> str:
+    def get_ftp_config(self) -> FtpConfig:
         """
-        Get FTP url
-        :return: url
+        Get the FTP configuration
+        :return: FTP configuration
         """
-        return self._ftp_config.url()
-
-    def ftp_usr(self) -> str:
-        """
-        Get FTP username
-        :return: username
-        """
-        return self._ftp_config.usr()
-
-    def ftp_pwd(self) -> str:
-        """
-        Get FTP password
-        :return: password
-        """
-        return self._ftp_config.pwd()
-
-    def ftp_dir(self) -> str:
-        """
-        Get FTP directory for saving the HTML file
-        :return: directory
-        """
-        return self._ftp_config.dir()
+        return self._ftp_config
 
 
 def main():
@@ -219,8 +161,7 @@ def main():
     logging.info('The current issue of the Daily Commute is printed')
 
     # Send to FTP
-    if not upload_to(daily_config.ftp_url(), daily_config.ftp_usr(),
-                     daily_config.ftp_pwd(), daily_config.ftp_dir(), 'tdc.html'):
+    if not upload_to(daily_config.get_ftp_config(), 'tdc.html'):
         return 1
 
     # Clean tmp file
